@@ -1,6 +1,6 @@
 module Pod
   class Builder
-    def initialize(platform, static_installer, source_dir, static_sandbox_root, dynamic_sandbox_root, public_headers_root, spec, embedded, mangle, dynamic, config, bundle_identifier, exclude_deps, skip_sim)
+    def initialize(platform, static_installer, source_dir, static_sandbox_root, dynamic_sandbox_root, public_headers_root, spec, embedded, mangle, dynamic, config, bundle_identifier, exclude_deps, skip_sim, archs)
       @platform = platform
       @static_installer = static_installer
       @source_dir = source_dir
@@ -15,6 +15,7 @@ module Pod
       @bundle_identifier = bundle_identifier
       @exclude_deps = exclude_deps
       @skip_sim = skip_sim
+      @archs = archs
 
       @file_accessors = @static_installer.pod_targets.select { |t| t.pod_name == @spec.name }.flat_map(&:file_accessors)
     end
@@ -305,7 +306,7 @@ MAP
     end
 
     def ios_architectures
-      archs = %w(x86_64 i386 arm64 armv7 armv7s)
+      archs = if @archs.nil? then %w(x86_64 i386 arm64 armv7 armv7s) else @archs end
       vendored_libraries.each do |library|
         archs = `lipo -info #{library}`.split & archs
       end

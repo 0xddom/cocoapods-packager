@@ -178,7 +178,8 @@ module Pod
           @config,
           @bundle_identifier,
           @exclude_deps,
-          @skip_sim
+          @skip_sim,
+          @archs
         )
 
         builder.build(@package_type)
