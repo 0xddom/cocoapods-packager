@@ -31,6 +31,7 @@ module Pod
             target.build_configurations.each do |config|
               config.build_settings['CLANG_MODULES_AUTOLINK'] = 'NO'
               config.build_settings['GCC_GENERATE_DEBUGGING_SYMBOLS'] = 'NO'
+              config.build_settings['SWIFT_VERSION'] = spec.swift_version if spec.swift_version
             end
           end
           static_installer.pods_project.save
