@@ -60,6 +60,7 @@ module Pod
 
           target('packager') do
             inherit! :complete
+            use_frameworks! if spec.swift_version
 #              swift_version spec.swift_version if spec.swift_version
             current_target_definition.swift_version = spec.swift_version if spec.swift_version
           end
