@@ -20,6 +20,9 @@ module Pod
           ['--exclude-deps', 'Exclude symbols from dependencies.'],
           ['--configuration', 'Build the specified configuration (e.g. Debug). Defaults to Release'],
           ['--subspecs', 'Only include the given subspecs'],
+          ['--platforms', 'Build only for this platforms'],
+          ['--archs', 'Build only this architectures'],
+          ['--skip-sim', 'Skip the iOS simulator build'],
           ['--spec-sources=private,https://github.com/CocoaPods/Specs.git', 'The sources to pull dependent ' \
             'pods from (defaults to https://github.com/CocoaPods/Specs.git)']
         ]
@@ -50,6 +53,13 @@ module Pod
         subspecs = argv.option('subspecs')
         @subspecs = subspecs.split(',') unless subspecs.nil?
 
+        platforms = argv.option('platforms')
+        @platforms = platforms.split(',').map(&:to_sym) unless platforms.nil?
+
+        archs = argv.option('archs')
+        @archs = archs.split(',') unless archs.nil?
+
+        @skip_sim = argv.flag?('skip-sim')
         @config = argv.option('configuration', 'Release')
 
         @source_dir = Dir.pwd
@@ -109,10 +119,13 @@ module Pod
         builder = SpecBuilder.new(@spec, @source, @embedded, @dynamic)
         newspec = builder.spec_metadata
 
+        platforms = if @platforms.nil? then @spec.available_platforms.map {|platform| platform.name} else @platforms end
         @spec.available_platforms.each do |platform|
-          build_in_sandbox(platform)
+          if platforms.include? platform.name
+            build_in_sandbox(platform)
 
-          newspec += builder.spec_platform(platform)
+            newspec += builder.spec_platform(platform)
+          end
         end
 
         newspec += builder.spec_close
@@ -164,7 +177,8 @@ module Pod
           @dynamic,
           @config,
           @bundle_identifier,
-          @exclude_deps
+          @exclude_deps,
+          @skip_sim
         )
 
         builder.build(@package_type)

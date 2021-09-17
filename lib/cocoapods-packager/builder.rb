@@ -1,6 +1,6 @@
 module Pod
   class Builder
-    def initialize(platform, static_installer, source_dir, static_sandbox_root, dynamic_sandbox_root, public_headers_root, spec, embedded, mangle, dynamic, config, bundle_identifier, exclude_deps)
+    def initialize(platform, static_installer, source_dir, static_sandbox_root, dynamic_sandbox_root, public_headers_root, spec, embedded, mangle, dynamic, config, bundle_identifier, exclude_deps, skip_sim)
       @platform = platform
       @static_installer = static_installer
       @source_dir = source_dir
@@ -14,6 +14,7 @@ module Pod
       @config = config
       @bundle_identifier = bundle_identifier
       @exclude_deps = exclude_deps
+      @skip_sim = skip_sim
 
       @file_accessors = @static_installer.pod_targets.select { |t| t.pod_name == @spec.name }.flat_map(&:file_accessors)
     end
@@ -81,7 +82,7 @@ module Pod
       UI.puts("Building dynamic framework #{@spec} with configuration #{@config}")
 
       defines = compile
-      build_sim_libraries(defines)
+      build_sim_libraries(defines) unless @skip_sim
 
       if @bundle_identifier
         defines = "#{defines} PRODUCT_BUNDLE_IDENTIFIER='#{@bundle_identifier}'"
@@ -110,10 +111,10 @@ module Pod
       xcodebuild(device_defines, device_options, 'build', @spec.name.to_s, @dynamic_sandbox_root.to_s)
 
       sim_defines = "#{defines} LIBRARY_SEARCH_PATHS=\"#{Dir.pwd}/#{@static_sandbox_root}/build-sim\" ONLY_ACTIVE_ARCH=NO"
-      xcodebuild(sim_defines, '-sdk iphonesimulator', 'build-sim', @spec.name.to_s, @dynamic_sandbox_root.to_s)
+      xcodebuild(sim_defines, '-sdk iphonesimulator', 'build-sim', @spec.name.to_s, @dynamic_sandbox_root.to_s) unless @skip_sim
 
       # Combine architectures
-      `lipo #{@dynamic_sandbox_root}/build/#{@spec.name}.framework/#{@spec.name} #{@dynamic_sandbox_root}/build-sim/#{@spec.name}.framework/#{@spec.name} -create -output #{output}`
+      `lipo #{@dynamic_sandbox_root}/build/#{@spec.name}.framework/#{@spec.name} #{@dynamic_sandbox_root}/build-sim/#{@spec.name}.framework/#{@spec.name} -create -output #{output}` unless @skip_sim
 
       FileUtils.mkdir(@platform.name.to_s)
       `mv #{@dynamic_sandbox_root}/build/#{@spec.name}.framework #{@platform.name}`

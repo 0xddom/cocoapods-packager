@@ -2,3 +2,5 @@ coverage
 pkg
 .DS_Store
 .bundle/
+*.gem
+*.swp

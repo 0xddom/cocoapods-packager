@@ -15,13 +15,14 @@ module Pod
       def install_pod(platform_name, sandbox)
         podfile = podfile_from_spec(
           @path,
-          @spec.name,
+          @spec,
           platform_name,
           @spec.deployment_target(platform_name),
           @subspecs,
           @spec_sources
         )
 
+        p podfile
         static_installer = Installer.new(sandbox, podfile)
         static_installer.install!
 
@@ -38,7 +39,7 @@ module Pod
         static_installer
       end
 
-      def podfile_from_spec(path, spec_name, platform_name, deployment_target, subspecs, sources)
+      def podfile_from_spec(path, spec, platform_name, deployment_target, subspecs, sources)
         options = {}
         if path
           if @local
@@ -51,14 +52,25 @@ module Pod
         Pod::Podfile.new do
           sources.each { |s| source s }
           platform(platform_name, deployment_target)
-          pod(spec_name, options)
-
+          pod(spec.name, options)
+          use_modular_headers!
           install!('cocoapods',
                    :integrate_targets => false,
                    :deterministic_uuids => false)
 
           target('packager') do
             inherit! :complete
+#              swift_version spec.swift_version if spec.swift_version
+            current_target_definition.swift_version = spec.swift_version if spec.swift_version
+          end
+
+          pre_install do |installer|
+            installer.analysis_result.specifications.each do |s|
+              p s.swift_version
+              puts "Running the preinstall! #{s.name} #{s.swift_version} #{spec.swift_version}"
+              s.swift_version = spec.swift_version unless s.swift_version
+              puts "Done with the preinstall! #{s.name} #{s.swift_version} #{spec.swift_version}"
+            end
           end
         end
       end
@@ -157,7 +169,7 @@ module Pod
 
         file_accessors = create_file_accessors(static_target, dynamic_sandbox)
 
-        archs = []
+        archs = if @archs.nil? then [] else @archs end
         build_type = Pod::BuildType.dynamic_framework
         dynamic_target = Pod::PodTarget.new(dynamic_sandbox, build_type, static_target.user_build_configurations, archs, platform, static_target.specs, static_target.target_definitions, file_accessors)
         dynamic_target
